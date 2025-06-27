@@ -36,6 +36,21 @@ function isDefined<T>(value: T | null | undefined): value is T {
   return value !== undefined && value !== null;
 }
 
+/**
+ * In some cases, the backend will provide `e.password` even if it is actually a token.
+ * However, `e.username` will be undefined if `e.password` is actually a token.
+ * @param e The credential to return the token or password for.
+ * @returns A partial `Credential` object that includes the appropriate token or password.
+ */
+function getTokenOrPassword(e: Credential): Partial<Credential> {
+  // If we have a token already, then the password isn't it.
+  if (isDefined(e.token)) return { token: e.token };
+  // If `username` is undefined, then the password is a token.
+  if (e.username === undefined) return { token: e.password };
+  // Otherwise, if `username` is defined, then the password is a password.
+  return { password: e.password };
+}
+
 // getCredentials returns registry credentials from action inputs.
 // It prefers `registries_credentials` over `registry_secrets`.
 // If neither is set, it returns an empty array.
@@ -128,8 +143,7 @@ export function getCredentials(
       host: e.host,
       url: e.url,
       username: e.username,
-      password: e.password,
-      token: e.token,
+      ...getTokenOrPassword(e),
     });
   }
   return out;

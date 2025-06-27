@@ -159,3 +159,28 @@ test("getCredentials throws an error when non-printable characters are used", as
     );
   }
 });
+
+test("getCredentials corrects for the backend returning tokens as passwords", async (t) => {
+  const tokenCredentials = [
+    {
+      type: "npm_registry",
+      host: "npm.pkg.github.com",
+      password: "abc",
+    },
+    { type: "maven_repository", host: "maven.pkg.github.com", token: "def" },
+    { type: "nuget_feed", host: "nuget.pkg.github.com", password: "ghi" },
+    { type: "goproxy_server", host: "goproxy.example.com", token: "jkl" },
+  ];
+  const credentialsInput = toEncodedJSON(tokenCredentials);
+
+  const credentials = startProxyExports.getCredentials(
+    getRunnerLogger(true),
+    undefined,
+    credentialsInput,
+    undefined,
+  );
+  for (const credential of credentials) {
+    t.not(credential.token, undefined);
+    t.is(credential.password, undefined);
+  }
+});
